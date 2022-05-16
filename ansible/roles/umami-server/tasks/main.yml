@@ -1,0 +1,67 @@
+- name: Install boto
+  pip:
+    name: boto3
+
+- name: retrieve umami_db info
+  community.aws.rds_instance_info:
+    db_instance_identifier: umami
+    region: "eu-west-1"
+  register: umami_db_info
+
+- name: setting up vars
+  set_fact:
+    db_host: "{{ umami_db_info.instances[0].endpoint.address }}"
+    db_pwd: "{{ lookup('amazon.aws.aws_secret', 'umami_db_password') }}"
+    hash_salt: "{{ lookup('community.general.random_string', length=16) }}"
+
+- name: install updates
+  yum: update_cache=yes
+
+- name: Add nodejs repo
+  shell: "curl -sL https://rpm.nodesource.com/setup_16.x | sudo bash -"
+
+- name: Install Node.js
+  yum:
+    name: nodejs
+    state: present
+
+- name: Install git
+  yum:
+    name: git
+    state: present
+
+- name: Clone umami repo
+  ansible.builtin.git:
+    repo: https://github.com/mikecao/umami.git
+    dest: /var/analytics/umami
+    force: yes
+
+- name: copy .env file for building umami
+  template:
+    src: files/.env
+    dest: /var/analytics/umami/.env
+
+- name: copy umami service file
+  template:
+    src: files/umami.service
+    dest: /lib/systemd/system/umami.service
+
+- name: Install dependencies
+  shell: npm --prefix /var/analytics/umami/ install
+
+- name: Build umami
+  shell: npm --prefix /var/analytics/umami run build
+
+- name: Remove .env file to rely on systemd service file
+  ansible.builtin.file:
+    path: /var/analytics/umami/.env
+    state: absent
+
+- name: Reload systemd to load umami service
+  ansible.builtin.systemd:
+    daemon_reload: yes
+
+- name: Start umami service
+  ansible.builtin.systemd:
+    state: started
+    name: umami

@@ -1,0 +1,14 @@
+[Unit]
+Description=Umami server
+After=network.target
+
+[Service]
+Environment=DATABASE_URL=postgresql://psqladm:{{ db_pwd | urlencode }}@{{ db_host }}:5432/umami
+Environment=HASH_SALT="{{ hash_salt }}"
+Type=simple
+User=ec2-user
+ExecStart=/usr/bin/npm start --prefix /var/analytics/umami
+Restart=on-failure
+
+[Install]
+WantedBy=multi-user.target

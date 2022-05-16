@@ -1,0 +1,44 @@
+- name: set dirs
+  set_fact:
+    certs_dir: "/etc/ssl/certs"
+
+- name: Create certs directory structure if it does not exist
+  ansible.builtin.file:
+    path: "{{ certs_dir }}/private/"
+    state: directory
+    recurse: yes
+    mode: '0755'
+
+- name: Install cryptography python package
+  pip:
+    name: cryptography
+
+- amazon.aws.ec2_metadata_facts:
+
+- name: Create private key (RSA, 4096 bits)
+  community.crypto.openssl_privatekey:
+    path: "{{ certs_dir }}/private/nginx-selfsigned.key"
+
+- name: Create simple self-signed certificate
+  community.crypto.x509_certificate:
+    path: "{{ certs_dir }}/private/nginx-cert.pem"
+    privatekey_path: "{{ certs_dir }}/private/nginx-selfsigned.key"
+    provider: selfsigned
+
+- name: Generate DH Parameters
+  community.crypto.openssl_dhparam:
+    path: "{{ certs_dir }}/dhparams.pem"
+    size: 2048
+
+- name: Install nginx
+  shell: "amazon-linux-extras install nginx1 -y"
+
+- name: Copy the nginx conf file
+  ansible.builtin.template:
+    src: files/proxy.conf
+    dest: "/etc/nginx/conf.d/proxy.conf"
+
+- name: Start nginx service
+  ansible.builtin.systemd:
+    state: started
+    name: nginx

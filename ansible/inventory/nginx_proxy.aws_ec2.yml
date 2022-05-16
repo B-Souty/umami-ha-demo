@@ -1,0 +1,9 @@
+plugin: aws_ec2
+hostnames:
+  - dns-name
+regions:
+  - eu-west-1
+groups:
+  nginx: "true"
+filters:
+  tag:role: nginx-proxy
