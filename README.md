@@ -149,3 +149,7 @@ aws ec2 describe-instances --filters "Name=tag-value,Values=nginx-proxy"  --quer
 ```
 
 Upong navigating to Umami, you will see a security prompt. This is because for the sake of demonstration this stack was setup using a self-signed certificate. Add an exception to your browser and access Umami. You can login to your instance by using the default credentials `admin:umami`
+
+## TODO
+
+While the current solution works, there are several improvements that still need to be made. A list of those improvements can be found [here](docs/TODO.md)
